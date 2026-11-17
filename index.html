@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1E5266">
+<meta name="description" content="Create Against Order, Stock Order and Payment Reminder messages and share them to WhatsApp.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Payment Release">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/favicon-64.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Payment Release Request</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one column on phones (form, chat preview, then share buttons at the end);
+   from 760px the preview sits beside the form, and the share buttons close the page. Light theme only. */
+:root{
+  --bg:#EDF1F0; --surface:#FFFFFF; --ink:#13242B; --muted:#5A6C71; --line:#D2DCDA; --field:#F4F8F9; --field-line:#8FA4A8;
+  --accent:#1E5266; --accent-soft:#E0EBEE; --accent-ink:#FFFFFF;
+  --wa:#12834A; --wa-ink:#FFFFFF;
+  --chat:#D8E1DE; --bubble:#DCF4D2; --bubble-ink:#13242B;
+  --good:#1A7F45; --good-soft:#E1F3E7; --bad:#C0352A; --bad-soft:#FBE6E3;
+  --focus:#2C7A94; --scrim:rgba(8,18,22,.48);
+  --f-display:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+.app{max-width:980px;margin:0 auto;padding-block:20px 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:16px}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.eyebrow{margin:0;font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{margin:2px 0 0;font-family:var(--f-display);font-weight:700;font-size:28px;line-height:1.1;letter-spacing:-.01em;text-wrap:balance}
+.icon-btn{flex:none;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;
+  border:1px solid var(--line);background:var(--surface);cursor:pointer;color:var(--accent)}
+.icon-btn svg{width:22px;height:22px}
+
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border-radius:12px;background:var(--accent-soft)}
+.seg button{min-height:44px;padding:6px 4px;border:0;border-radius:9px;background:transparent;cursor:pointer;font-weight:600;font-size:14px;line-height:1.2;color:var(--accent)}
+.seg button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+@media (min-width:760px){
+  .grid{grid-template-columns:minmax(0,1fr) minmax(0,380px);gap:24px;align-items:start}
+  .preview-col{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px)}
+}
+
+.form{display:flex;flex-direction:column;gap:14px;margin:0;min-width:0}
+.block{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.block-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+h2{margin:0;font-family:var(--f-display);font-weight:600;font-size:17px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:420px){.row2.stack{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+label,.label{font-size:13.5px;font-weight:600;color:var(--ink)}
+input[type=text],input[type=password],select{width:100%;height:48px;padding:0 12px;border-radius:10px;border:1.5px solid var(--field-line);background:var(--field);min-width:0;font-size:16px;font-weight:500;transition:border-color .15s,box-shadow .15s,background-color .15s}
+input[type=text]:hover,input[type=password]:hover,select:hover{border-color:var(--accent)}
+input[type=text]:focus,input[type=password]:focus,select:focus{outline:none;border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px var(--accent-soft)}
+input::placeholder{color:var(--muted);opacity:.7}
+select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat;padding-right:34px}
+.amt{position:relative}
+.amt span{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.amt input{padding-left:28px;text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+
+.staff-warn{margin:0;padding:10px 14px;border-radius:12px;background:var(--bad-soft);color:var(--bad);font-size:14px;font-weight:500}
+.staff-warn .link-btn{color:var(--bad);text-decoration:underline}
+.pay-list{display:flex;flex-direction:column;gap:8px}
+.pay-row{display:grid;grid-template-columns:2ch minmax(0,1fr) auto;align-items:center;gap:8px}
+.pay-row .num{font-family:var(--f-mono);font-size:13px;color:var(--muted);text-align:right}
+.pay-row .rm{width:40px;height:40px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--bad);font-size:20px;line-height:1;cursor:pointer}
+.add-sup{align-self:flex-start;height:42px;padding:0 14px;border:1px dashed var(--accent);border-radius:10px;background:var(--accent-soft);color:var(--accent);font-weight:600;font-size:14px;cursor:pointer}
+.opt{font-weight:400;color:var(--muted)}
+.preview-head{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px}
+.link-btn{border:0;background:none;padding:6px;color:var(--accent);font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap;border-radius:6px}
+.link-btn.armed{color:var(--bad)}
+.hint{margin:0;font-size:12.5px;color:var(--muted)}
+
+.pct{display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:10px;background:var(--accent-soft)}
+.pct output{font-family:var(--f-display);font-weight:700;font-size:26px;min-width:4.2ch;font-variant-numeric:tabular-nums;color:var(--muted)}
+.meter{flex:1;height:8px;border-radius:999px;background:var(--surface);overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--muted);border-radius:inherit;transition:width .2s}
+.pct.good{background:var(--good-soft)} .pct.good output{color:var(--good)} .pct.good .meter i{background:var(--good)}
+.pct.bad{background:var(--bad-soft)} .pct.bad output{color:var(--bad)} .pct.bad .meter i{background:var(--bad)}
+.pct-hint.good{color:var(--good)} .pct-hint.bad{color:var(--bad)}
+
+
+.preview-col{display:flex;flex-direction:column;gap:10px;min-width:0}
+.chat{background:var(--chat);border-radius:14px;padding:16px 12px}
+.bubble{margin-left:auto;max-width:94%;width:fit-content;min-width:60%;background:var(--bubble);color:var(--bubble-ink);
+  border-radius:10px 2px 10px 10px;padding:9px 11px 6px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.45;box-shadow:0 1px 0 rgba(0,0,0,.08)}
+.bubble b{font-weight:700}
+.bubble .gap{display:inline-block;width:5.5em;height:1em;vertical-align:-3px;border-bottom:1.5px dashed var(--muted);opacity:.55}
+.bubble .meta{display:block;text-align:right;font-size:11px;color:var(--muted);margin-top:2px}
+.missing{margin:0;font-size:12.5px;color:var(--muted)}
+
+.actions{display:grid;grid-template-columns:1fr auto;gap:8px;padding-top:16px;border-top:1px solid var(--line)}
+.vstack{display:flex;flex-direction:column;gap:14px}
+.quote-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:-4px}
+.quote-head h2{font-size:16px;color:var(--accent)}
+.quote-head .link-btn{color:var(--bad)}
+#addQuote{align-self:flex-start}
+.btn:hover{filter:brightness(.96)}
+.btn.wa:hover{filter:brightness(1.08)}
+kbd{font-family:var(--f-mono);font-size:11px;font-weight:500;padding:1px 5px;border-radius:5px;border:1px solid var(--line);background:var(--surface);color:var(--muted);white-space:nowrap}
+.shortcuts{margin:0;font-size:12px;color:var(--muted);line-height:1.9}
+.pair{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.lists{display:flex;flex-direction:column;gap:14px}
+
+/* Phone and tablet vs PC: .desktop is set by the script for a mouse/keyboard computer */
+.desk-only{display:none!important}
+html.desktop .desk-only{display:revert!important}
+html.desktop .btn.desk-only{display:inline-flex!important}
+html.desktop .touch-only{display:none!important}
+html.desktop .actions{grid-template-columns:1fr}
+html.desktop #copyBtn{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+html.desktop #copyBtn svg.desk-only{display:inline-block!important}
+.seg kbd{margin-left:8px;background:transparent;border-color:currentColor;color:inherit;opacity:.65}
+
+/* PC layout: wider page, paired fields side by side, preview and share buttons always in view */
+@media (min-width:1024px){
+  .app{max-width:1240px;padding-block:28px 48px;padding-left:max(32px,env(safe-area-inset-left,0px));padding-right:max(32px,env(safe-area-inset-right,0px));gap:20px}
+  h1{font-size:32px}
+  .seg{max-width:640px}
+  .grid{grid-template-columns:minmax(0,1fr) 420px;gap:32px}
+  .preview-col{top:20px;max-height:calc(100vh - 40px);overflow-y:auto;padding-bottom:4px}
+  .block{padding:22px 24px;gap:18px}
+  .pair{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+  .row2{gap:18px}
+  .actions{border-top:0;padding-top:4px}
+  .app.settings-page{max-width:980px}
+  .settings-body .lists{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+  .settings-body > .btn.full{max-width:320px}
+  .lock{max-width:520px}
+  .name-list{max-height:320px}
+}
+html.desktop input[type=text],html.desktop input[type=password],html.desktop select{height:44px;font-size:15px}
+html.desktop .icon-btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+html.desktop .seg button:not([aria-selected="true"]):hover{background:rgba(30,82,102,.08)}
+.btn{height:52px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 20px;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;cursor:pointer;border:1px solid transparent}
+.btn svg{width:20px;height:20px}
+.btn.wa{background:var(--wa);color:var(--wa-ink)}
+.btn.ghost{background:var(--surface);border-color:var(--line);color:var(--ink)}
+
+/* Settings page */
+.settings-page{max-width:560px;min-height:calc(100vh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+.top.left{justify-content:flex-start}
+.settings-body{display:flex;flex-direction:column;gap:14px}
+.lock{align-items:flex-start}
+.lock-icon{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.lock-icon svg{width:24px;height:24px}
+.lock .add-row{width:100%;margin:0}
+.pw-show{margin:0;padding:8px 12px;border-radius:10px;border:1px dashed var(--line);font-family:var(--f-mono);font-size:14px;color:var(--muted)}
+.pw-show strong{color:var(--ink);letter-spacing:.12em}
+.pw-error{margin:0;color:var(--bad);font-size:13.5px;font-weight:500}
+input[type=password]{letter-spacing:.2em}
+.btn.full{width:100%;height:50px;font-size:15px}
+.copyright{margin-top:auto;padding-top:24px;display:flex;align-items:center;justify-content:center;gap:10px;color:var(--muted);font-size:13px;line-height:1.3}
+.copyright small{font-size:11px}
+.cr-mark{width:34px;height:34px;border-radius:50%;border:2px solid var(--accent);color:var(--accent);display:grid;place-items:center;font-size:19px;font-weight:700;font-family:var(--f-display)}
+.add-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.btn.small{height:46px;padding:0 16px;background:var(--accent);color:var(--accent-ink);font-size:14px}
+.name-list{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;max-height:240px;overflow-y:auto}
+.name-list li{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 6px 6px 14px;border-top:1px solid var(--line);min-height:48px}
+.name-list li:first-child{border-top:0}
+.name-list li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.name-list .empty{color:var(--muted);font-size:13.5px;padding:14px}
+.note{margin:0;font-size:12.5px;color:var(--muted)}
+
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;pointer-events:none;
+  background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:500;font-size:14px;transition:opacity .2s,transform .2s;z-index:30}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* Base reset for the standalone app */
+html,body{height:auto}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="app" id="mainView">
+  <header class="top">
+    <div>
+      <p class="eyebrow">Purchase order group</p>
+      <h1>Payment Release Request</h1>
+    </div>
+    <button type="button" class="icon-btn" id="openSettings" aria-label="Settings" title="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </header>
+
+  <div class="seg" role="tablist" aria-label="Message type">
+    <button type="button" role="tab" id="tab-against" data-type="against" aria-selected="true">Against Order<kbd class="desk-only">Alt+1</kbd></button>
+    <button type="button" role="tab" id="tab-stock" data-type="stock" aria-selected="false">Stock Order<kbd class="desk-only">Alt+2</kbd></button>
+    <button type="button" role="tab" id="tab-payment" data-type="payment" aria-selected="false">Payment Reminder<kbd class="desk-only">Alt+3</kbd></button>
+  </div>
+
+  <div class="grid">
+    <form class="form" id="form" novalidate autocomplete="off">
+      <p class="staff-warn" id="staffWarn" hidden>Your name for "Requested by" is not set. <button type="button" class="link-btn" data-open-settings>Add it in Settings</button></p>
+
+      <section class="block" id="purchaseBlock">
+        <div class="pair">
+          <div class="field">
+            <label for="supplier">Supplier</label>
+            <input type="text" id="supplier" class="proper" placeholder="e.g. Hettich India Pvt Ltd" autocapitalize="words">
+          </div>
+          <div class="field">
+            <label for="poAmt">PO Amt</label>
+            <div class="amt"><span>₹</span><input type="text" id="poAmt" class="money" inputmode="decimal" placeholder="0"></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="vstack" id="salesBlock">
+        <p class="hint" id="salesHint" hidden>No sales staff saved yet. <button type="button" class="link-btn" data-open-settings>Add sales staff in Settings</button></p>
+        <div class="vstack" id="quoteList"></div>
+        <button type="button" class="add-sup" id="addQuote">+ Add another quotation</button>
+        <section class="block" id="advApproveField" hidden>
+          <div class="field">
+            <label for="advApprovedBy">Approved by <span class="opt">(advance below 50%)</span></label>
+            <select id="advApprovedBy" class="approver-select"></select>
+            <p class="hint" data-approver-hint hidden>No names yet. <button type="button" class="link-btn" data-open-settings>Add approvers in Settings</button></p>
+          </div>
+        </section>
+      </div>
+
+      <section class="block" id="approvalBlock" hidden>
+        <h2>Approval</h2>
+        <div class="field">
+          <label for="approvedBy">Approved by</label>
+          <select id="approvedBy" class="approver-select"></select>
+          <p class="hint" data-approver-hint hidden>No names yet. <button type="button" class="link-btn" data-open-settings>Add approvers in Settings</button></p>
+        </div>
+      </section>
+
+      <section class="block" id="paymentBlock" hidden>
+        <h2>Please Release Payment to</h2>
+        <div class="field">
+          <span class="label">Suppliers</span>
+          <div class="pay-list" id="payList"></div>
+          <button type="button" class="add-sup" id="addPay">+ Add another supplier</button>
+        </div>
+        <div class="field">
+          <label for="payApprovedBy">Approved by <span class="opt">(optional)</span></label>
+          <select id="payApprovedBy" class="approver-select"></select>
+          <p class="hint" data-approver-hint hidden>No names yet. <button type="button" class="link-btn" data-open-settings>Add approvers in Settings</button></p>
+        </div>
+      </section>
+    </form>
+
+    <aside class="preview-col" aria-label="Message preview">
+      <div class="preview-head">
+        <p class="eyebrow">Message preview</p>
+        <button type="button" class="link-btn" id="clearBtn">Clear form</button>
+      </div>
+      <div class="chat"><div class="bubble" id="bubble"></div></div>
+      <p class="missing" id="missing"></p>
+      <div class="actions">
+        <a class="btn wa touch-only" id="waBtn" href="https://wa.me/" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.6.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2s.2-1.1.2-1.2-.2-.2-.5-.3z"/></svg>
+          Share on WhatsApp
+        </a>
+        <button type="button" class="btn ghost" id="copyBtn"><svg class="desk-only" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg><span class="touch-only">Copy</span><span class="desk-only">Copy message</span></button>
+      </div>
+      <p class="shortcuts desk-only">Shortcuts: <kbd>Enter</kbd> next field · <kbd>Ctrl+Enter</kbd> or <kbd>Alt+C</kbd> copy message · <kbd>Alt+1/2/3</kbd> switch tab</p>
+    </aside>
+  </div>
+
+</div>
+</div>
+
+<div class="app settings-page" id="settingsView" hidden>
+  <header class="top left">
+    <button type="button" class="icon-btn" id="backBtn" aria-label="Back to form" title="Back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div>
+      <p class="eyebrow">Payment Release Request</p>
+      <h1>Settings</h1>
+    </div>
+  </header>
+
+  <section class="block lock" id="lockBox">
+    <div class="lock-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+    </div>
+    <h2>Settings are locked</h2>
+    <p class="hint">Enter the password to change your name or the sales staff list. This stops settings being changed by mistake.</p>
+    <p class="pw-show">Password: <strong>1234</strong></p>
+    <form class="add-row" id="lockForm" novalidate>
+      <input type="password" id="pwInput" inputmode="numeric" placeholder="Enter password" aria-label="Password" autocomplete="off">
+      <button type="submit" class="btn small">Unlock</button>
+    </form>
+    <p class="pw-error" id="pwError" role="alert" hidden>Wrong password. Please try again.</p>
+  </section>
+
+  <div class="settings-body" id="settingsBody" hidden>
+    <section class="block">
+      <h2>Requested by</h2>
+      <div class="field">
+        <label for="setStaff">Your name, as it appears on every message</label>
+        <input type="text" id="setStaff" class="proper" placeholder="Type your name" autocapitalize="words">
+      </div>
+    </section>
+    <div class="lists">
+    <section class="block">
+      <h2>Approved by list</h2>
+      <div class="field">
+        <label for="new-approvers">Names shown in the Approved by dropdown</label>
+        <div class="add-row">
+          <input type="text" id="new-approvers" class="proper" placeholder="Add an approver name" autocapitalize="words">
+          <button type="button" class="btn small" id="add-approvers">Add</button>
+        </div>
+        <ul class="name-list" id="list-approvers"></ul>
+      </div>
+    </section>
+    <section class="block">
+      <h2>Sales staff list</h2>
+      <div class="field">
+        <label for="new-sales">Names shown in the Sales Staff dropdown</label>
+        <div class="add-row">
+          <input type="text" id="new-sales" class="proper" placeholder="Add a sales staff name" autocapitalize="words">
+          <button type="button" class="btn small" id="add-sales">Add</button>
+        </div>
+        <ul class="name-list" id="list-sales"></ul>
+      </div>
+    </section>
+    </div>
+    <p class="note">Changes save automatically in this browser on this device.</p>
+    <button type="button" class="btn small full" id="closeSettings">Done</button>
+  </div>
+
+  <footer class="copyright">
+    <span class="cr-mark" aria-hidden="true">©</span>
+    <span><span id="crYear"></span> @pkm_calicut<br><small>All rights reserved</small></span>
+  </footer>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  /* A computer with a mouse and keyboard gets the PC layout; the WhatsApp share button is for phones only */
+  var isDesktop = !/Android|iPhone|iPad|iPod|Mobile|Silk|Kindle/i.test(navigator.userAgent) &&
+                  !(navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)) &&
+                  window.matchMedia && matchMedia('(pointer:fine)').matches;
+  if (isDesktop) document.documentElement.classList.add('desktop');
+  var store = {
+    get: function(k, d){ try { var v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
+    set: function(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+  };
+
+  var settings = store.get('po.settings', {});
+  settings.staff = settings.staff || '';
+  if (!Array.isArray(settings.sales)) settings.sales = [];
+  if (!Array.isArray(settings.approvers)) settings.approvers = [];
+  var type = store.get('po.type', 'against');
+  if (['against','stock','payment'].indexOf(type) < 0) type = 'against';
+  var draft = store.get('po.draft', {});
+  var draftIds = ['supplier','poAmt','advApprovedBy','approvedBy','payApprovedBy'];
+
+  /* ---------- formatting ---------- */
+  function properCase(s){
+    return s.toLowerCase().replace(/(^|[\s.\-\/&(,])(\p{L})/gu, function(m, p, c){ return p + c.toUpperCase(); });
+  }
+  function tidy(s){ return s.replace(/\s+/g, ' ').trim(); }
+  function cleanAmt(s){
+    s = s.replace(/[^\d.]/g, '');
+    var i = s.indexOf('.');
+    if (i >= 0) s = s.slice(0, i + 1) + s.slice(i + 1).replace(/\./g, '').slice(0, 2);
+    return s.replace(/^0+(?=\d)/, '');
+  }
+  function groupAmt(clean){
+    var parts = clean.split('.'), ip = parts[0].slice(0, 12);
+    var out = ip ? Number(ip).toLocaleString('en-IN') : (clean.charAt(0) === '.' ? '0' : '');
+    if (clean.indexOf('.') >= 0) out += '.' + (parts[1] || '');
+    return out;
+  }
+  function amt(id){ return num($(id).value); }
+  function num(raw){
+    var v = String(raw || '').replace(/,/g, '');
+    if (v === '' || v === '.') return null;
+    var n = parseFloat(v);
+    return isNaN(n) ? null : n;
+  }
+  function inr(n){
+    if (n == null) return '';
+    var dec = Math.round(n * 100) % 100 !== 0;
+    return '₹ ' + n.toLocaleString('en-IN', { minimumFractionDigits: dec ? 2 : 0, maximumFractionDigits: 2 });
+  }
+  function todayText(){
+    var d = new Date();
+    return String(d.getDate()).padStart(2, '0') + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + d.getFullYear();
+  }
+  function quotePct(q){
+    var qa = num(q.quot), aa = num(q.adv);
+    if (!qa || aa == null) return null;
+    return aa / qa * 100;
+  }
+  function pctText(p){ return p == null ? '' : (+p.toFixed(2)) + '%'; }
+  /* Approval is needed when any quotation's advance is below 50% */
+  function needsAdvApproval(){
+    return type === 'against' && quoteValues().some(function(q){ var p = quotePct(q); return p != null && p < 50; });
+  }
+  function esc(s){ return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function bold(s){ return esc(s).replace(/\*([^*\n]+)\*/g, '<b>$1</b>'); }
+
+  /* ---------- message ----------
+     line kinds: ['title', text] ['gap'] ['field', prefix, value]  (value '' = still empty) ['raw', text] */
+  function buildLines(){
+    var v = function(id){ return tidy($(id).value); };
+    var titles = { against: 'Against Order', stock: 'Stock Order', payment: 'Payment Reminder' };
+    var L = [
+      ['title', titles[type]],
+      ['gap'],
+      ['field', 'Requested by :', settings.staff],
+      ['field', 'Date :', todayText()]
+    ];
+    if (type === 'payment') {
+      var sups = payValues().filter(Boolean);
+      L.push(['gap']);
+      if (sups.length <= 1) {
+        L.push(['field', 'Please Release Payment to', sups[0] ? '*' + sups[0] + '*' : '', 'Supplier']);
+      } else {
+        L.push(['raw', 'Please Release Payment to']);
+        sups.forEach(function(s, i){ L.push(['raw', (i + 1) + '. *' + s + '*']); });
+      }
+      var payAppr = $('payApprovedBy').value;
+      if (payAppr) { L.push(['gap']); L.push(['raw', 'Approved by : ' + payAppr]); }
+      return L;
+    }
+    L.push(['field', 'Supplier :', v('supplier')]);
+    L.push(['field', 'PO Amt :', inr(amt('poAmt'))]);
+    L.push(['gap']);
+    if (type === 'against') {
+      var qs = quoteValues(), many = qs.length > 1;
+      qs.forEach(function(q, i){
+        var tag = many ? 'Quotation ' + (i + 1) + ' ' : '';
+        if (many) { if (i > 0) L.push(['gap']); L.push(['raw', '*Quotation ' + (i + 1) + '*']); }
+        L.push(['field', 'Sales Staff :', q.sales, tag + 'Sales Staff']);
+        L.push(['field', 'Customer Name :', tidy(q.customer), tag + 'Customer Name']);
+        L.push(['field', 'Quotation Amt :', inr(num(q.quot)), tag + 'Quotation Amt']);
+        L.push(['field', 'Advance Amt :', inr(num(q.adv)), tag + 'Advance Amt']);
+        L.push(['field', 'Adv in % :', pctText(quotePct(q)), tag + 'Adv in %']);
+      });
+      if (needsAdvApproval()) {
+        if (many) L.push(['gap']);
+        L.push(['field', 'Approved by :', $('advApprovedBy').value]);
+      }
+    } else {
+      L.push(['field', 'Approved by :', $('approvedBy').value]);
+    }
+    return L;
+  }
+  function toText(L){
+    return L.map(function(l){
+      if (l[0] === 'title') return '*' + l[1] + '*';
+      if (l[0] === 'gap') return '';
+      if (l[0] === 'raw') return l[1];
+      return l[1] + ' ' + l[2];
+    }).join('\n');
+  }
+  function toHTML(L){
+    return L.map(function(l){
+      if (l[0] === 'title') return '<b>' + esc(l[1]) + '</b>';
+      if (l[0] === 'gap') return '';
+      if (l[0] === 'raw') return bold(l[1]);
+      return esc(l[1]) + ' ' + (l[2] ? bold(l[2]) : '<span class="gap"></span>');
+    }).join('\n');
+  }
+
+  var currentText = '';
+  function render(){
+    var L = buildLines();
+    currentText = toText(L);
+    var t = new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+    $('bubble').innerHTML = toHTML(L) + '<span class="meta">' + esc(t) + '</span>';
+    $('waBtn').href = 'https://wa.me/?text=' + encodeURIComponent(currentText);
+
+    var empty = L.filter(function(l){ return l[0] === 'field' && !l[2]; })
+                 .map(function(l){ return l[3] || l[1].replace(/\s*:$/, ''); });
+    $('missing').textContent = empty.length ? 'Still empty: ' + empty.join(', ') : 'All fields filled. Ready to share.';
+
+    // Adv % per quotation: 50% or more is green, below 50% is red and needs an approver
+    document.querySelectorAll('#quoteList .quote').forEach(function(card){
+      var p = quotePct(readQuote(card)), box = card.querySelector('.pct'), hint = card.querySelector('.pct-hint');
+      card.querySelector('output').textContent = p == null ? '–' : pctText(p);
+      card.querySelector('.meter i').style.width = p == null ? '0' : Math.min(p, 100) + '%';
+      box.classList.toggle('good', p != null && p >= 50);
+      box.classList.toggle('bad', p != null && p < 50);
+      hint.classList.toggle('good', p != null && p >= 50 && p <= 100);
+      hint.classList.toggle('bad', p != null && (p < 50 || p > 100));
+      hint.textContent = p == null ? 'Advance ÷ Quotation × 100'
+        : p > 100 ? 'Advance is more than the quotation amount. Please check.'
+        : p < 50 ? 'Below 50%. Select who approved it below.'
+        : '50% or more advance received.';
+    });
+    $('advApproveField').hidden = !needsAdvApproval();
+  }
+
+  /* ---------- message type ---------- */
+  function setType(t, focusAfter){
+    type = t;
+    store.set('po.type', t);
+    document.querySelectorAll('.seg button').forEach(function(b){ b.setAttribute('aria-selected', String(b.dataset.type === t)); });
+    $('purchaseBlock').hidden = t === 'payment';
+    $('salesBlock').hidden = t !== 'against';
+    $('approvalBlock').hidden = t !== 'stock';
+    $('paymentBlock').hidden = t !== 'payment';
+    render();
+    if (isDesktop && focusAfter) {
+      var first = document.querySelector('#form .block:not([hidden]) input, #form .block:not([hidden]) select');
+      if (first) first.focus();
+    }
+  }
+  document.querySelectorAll('.seg button').forEach(function(b){
+    b.addEventListener('click', function(){ setType(b.dataset.type, true); });
+  });
+
+  /* ---------- inputs ---------- */
+  function onProper(e){
+    var el = e.target, s = el.selectionStart, en = el.selectionEnd, pc = properCase(el.value);
+    if (pc !== el.value) { el.value = pc; try { el.setSelectionRange(s, en); } catch(_){} }
+  }
+  function onMoney(e){
+    var el = e.target, pos = el.selectionStart, raw = el.value;
+    var before = raw.slice(0, pos).replace(/[^\d.]/g, '').length;
+    var out = groupAmt(cleanAmt(raw));
+    el.value = out;
+    var n = 0, p = 0;
+    while (p < out.length && n < before) { if (/[\d.]/.test(out[p])) n++; p++; }
+    try { el.setSelectionRange(p, p); } catch(_){}
+  }
+  document.querySelectorAll('.proper').forEach(function(el){
+    el.addEventListener('input', onProper);
+    el.addEventListener('blur', function(){
+      el.value = tidy(el.value);
+      if ($('form').contains(el)) { saveDraft(); render(); }
+    });
+  });
+  document.querySelectorAll('.money').forEach(function(el){ el.addEventListener('input', onMoney); });
+
+  function saveDraft(){
+    var d = { pay: payValues(), quotes: quoteValues() };
+    draftIds.forEach(function(id){ d[id] = $(id).value; });
+    store.set('po.draft', d);
+  }
+
+  /* ---------- against order quotations (one or more) ---------- */
+  function readQuote(card){
+    return {
+      sales: card.querySelector('.q-sales').value,
+      customer: card.querySelector('.q-cust').value,
+      quot: card.querySelector('.q-quot').value,
+      adv: card.querySelector('.q-adv').value
+    };
+  }
+  function quoteValues(){
+    return Array.prototype.map.call(document.querySelectorAll('#quoteList .quote'), readQuote);
+  }
+  function fillSalesSelect(sel, cur){
+    sel.innerHTML = '';
+    var ph = document.createElement('option'); ph.value = '';
+    ph.textContent = settings.sales.length ? 'Select sales staff' : 'No sales staff saved';
+    sel.appendChild(ph);
+    settings.sales.forEach(function(n){
+      var o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o);
+    });
+    sel.value = settings.sales.indexOf(cur) >= 0 ? cur : '';
+  }
+  function el(tag, attrs, html){
+    var e = document.createElement(tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (html != null) e.innerHTML = html;
+    return e;
+  }
+  function renderQuotes(values, focusIndex){
+    if (!values || !values.length) values = [{}];
+    var box = $('quoteList'); box.innerHTML = '';
+    var many = values.length > 1;
+    values.forEach(function(q, i){
+      var id = 'q' + i + '-';
+      var card = el('section', { 'class': 'block quote', 'aria-label': 'Quotation ' + (i + 1) });
+      if (many) {
+        var head = el('div', { 'class': 'quote-head' });
+        head.appendChild(el('h2', {}, 'Quotation ' + (i + 1)));
+        var rm = el('button', { type: 'button', 'class': 'link-btn', 'aria-label': 'Remove quotation ' + (i + 1) }, 'Remove');
+        rm.addEventListener('click', function(){
+          var vals = quoteValues(); vals.splice(i, 1);
+          renderQuotes(vals); saveDraft(); render(); toast('Quotation ' + (i + 1) + ' removed');
+        });
+        head.appendChild(rm);
+        card.appendChild(head);
+      }
+      var pair = el('div', { 'class': 'pair' });
+      var f1 = el('div', { 'class': 'field' }); f1.appendChild(el('label', { 'for': id + 'sales' }, 'Sales Staff'));
+      var sel = el('select', { id: id + 'sales', 'class': 'q-sales' }); fillSalesSelect(sel, q.sales || ''); f1.appendChild(sel);
+      var f2 = el('div', { 'class': 'field' }); f2.appendChild(el('label', { 'for': id + 'cust' }, 'Customer Name'));
+      var cust = el('input', { type: 'text', id: id + 'cust', 'class': 'proper q-cust', placeholder: 'e.g. Anil Kumar', autocapitalize: 'words' });
+      cust.value = q.customer || '';
+      cust.addEventListener('input', onProper);
+      cust.addEventListener('blur', function(){ cust.value = tidy(cust.value); saveDraft(); render(); });
+      f2.appendChild(cust);
+      pair.appendChild(f1); pair.appendChild(f2); card.appendChild(pair);
+
+      var row = el('div', { 'class': 'row2 stack' });
+      [['quot', 'Quotation Amt', 'q-quot'], ['adv', 'Advance Amt', 'q-adv']].forEach(function(d){
+        var f = el('div', { 'class': 'field' }); f.appendChild(el('label', { 'for': id + d[0] }, d[1]));
+        var wrap = el('div', { 'class': 'amt' }, '<span>₹</span>');
+        var inp = el('input', { type: 'text', id: id + d[0], 'class': 'money ' + d[2], inputmode: 'decimal', placeholder: '0' });
+        inp.value = q[d[0]] || '';
+        inp.addEventListener('input', onMoney);
+        wrap.appendChild(inp); f.appendChild(wrap); row.appendChild(f);
+      });
+      card.appendChild(row);
+
+      var fp = el('div', { 'class': 'field' });
+      fp.appendChild(el('span', { 'class': 'label' }, 'Adv in % (calculated)'));
+      fp.appendChild(el('div', { 'class': 'pct' }, '<output>–</output><div class="meter"><i></i></div>'));
+      fp.appendChild(el('p', { 'class': 'hint pct-hint' }, 'Advance ÷ Quotation × 100'));
+      card.appendChild(fp);
+      box.appendChild(card);
+    });
+    $('salesHint').hidden = settings.sales.length > 0;
+    if (focusIndex != null) { var f = $('q' + focusIndex + '-sales'); if (f) { f.scrollIntoView({ block: 'center', behavior: 'smooth' }); f.focus({ preventScroll: true }); } }
+  }
+  $('addQuote').addEventListener('click', function(){
+    var vals = quoteValues(); vals.push({});
+    renderQuotes(vals, vals.length - 1); saveDraft(); render();
+  });
+
+  /* ---------- payment reminder suppliers (typed, one or more) ---------- */
+  function payValues(){
+    return Array.prototype.map.call(document.querySelectorAll('#payList input'), function(el){ return tidy(el.value); });
+  }
+  function renderPayRows(values, focusLast){
+    if (!values.length) values = [''];
+    var box = $('payList'); box.innerHTML = '';
+    values.forEach(function(val, i){
+      var row = document.createElement('div'); row.className = 'pay-row';
+      var num = document.createElement('span'); num.className = 'num'; num.textContent = (i + 1) + '.';
+      var inp = document.createElement('input');
+      inp.type = 'text'; inp.id = 'pay-' + i; inp.className = 'proper'; inp.value = val;
+      inp.placeholder = i === 0 ? 'e.g. Hettich India Pvt Ltd' : 'Supplier name';
+      inp.setAttribute('autocapitalize', 'words');
+      inp.setAttribute('aria-label', 'Supplier ' + (i + 1));
+      inp.addEventListener('input', onProper);
+      inp.addEventListener('blur', function(){ inp.value = tidy(inp.value); saveDraft(); render(); });
+      inp.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); addPayRow(); } });
+      row.appendChild(num); row.appendChild(inp);
+      if (values.length > 1) {
+        var rm = document.createElement('button');
+        rm.type = 'button'; rm.className = 'rm'; rm.textContent = '×';
+        rm.setAttribute('aria-label', 'Remove supplier ' + (i + 1));
+        rm.addEventListener('click', function(){
+          var vals = payValues(); vals.splice(i, 1);
+          renderPayRows(vals); saveDraft(); render();
+        });
+        row.appendChild(rm);
+      } else {
+        row.appendChild(document.createElement('span'));
+      }
+      box.appendChild(row);
+    });
+    if (focusLast) { var all = box.querySelectorAll('input'); all[all.length - 1].focus(); }
+  }
+  function addPayRow(){
+    var vals = payValues(); vals.push('');
+    renderPayRows(vals, true); saveDraft(); render();
+  }
+  $('addPay').addEventListener('click', addPayRow);
+  $('form').addEventListener('input', function(){ saveDraft(); render(); });
+  $('form').addEventListener('change', function(){ saveDraft(); render(); });
+  $('form').addEventListener('submit', function(e){ e.preventDefault(); });
+
+  /* ---------- fixed values, dropdowns, pickers ---------- */
+  function renderStaff(){ $('staffWarn').hidden = !!settings.staff; }
+  function renderApproverSelects(keep){
+    ['approvedBy','advApprovedBy','payApprovedBy'].forEach(function(id){
+      var sel = $(id), cur = keep ? keep[id] : sel.value;
+      sel.innerHTML = '';
+      var ph = document.createElement('option'); ph.value = '';
+      ph.textContent = !settings.approvers.length ? 'No approvers saved' : id === 'payApprovedBy' ? 'None (leave out of message)' : 'Select approver';
+      sel.appendChild(ph);
+      settings.approvers.forEach(function(n){
+        var o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o);
+      });
+      sel.value = settings.approvers.indexOf(cur) >= 0 ? cur : '';
+    });
+    document.querySelectorAll('[data-approver-hint]').forEach(function(h){ h.hidden = settings.approvers.length > 0; });
+  }
+  function renderSalesSelect(){
+    document.querySelectorAll('#quoteList .q-sales').forEach(function(sel){ fillSalesSelect(sel, sel.value); });
+    $('salesHint').hidden = settings.sales.length > 0;
+  }
+  /* ---------- settings sheet ---------- */
+  function saveSettings(){ store.set('po.settings', settings); }
+  var emptyText = {
+    approvers: 'No names yet. Add the people who approve orders.',
+    sales: 'No names yet. Add the sales staff you choose from on an Against Order.'
+  };
+  function afterListChange(){ renderSalesSelect(); renderApproverSelects(); saveDraft(); render(); }
+  function renderList(key){
+    var ul = $('list-' + key);
+    ul.innerHTML = '';
+    if (!settings[key].length) {
+      var li = document.createElement('li'); li.className = 'empty'; li.textContent = emptyText[key];
+      ul.appendChild(li); return;
+    }
+    settings[key].forEach(function(n, i){
+      var li = document.createElement('li');
+      var s = document.createElement('span'); s.textContent = n;
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'link-btn'; b.textContent = 'Remove';
+      b.setAttribute('aria-label', 'Remove ' + n);
+      b.addEventListener('click', function(){
+        settings[key].splice(i, 1); saveSettings(); renderList(key); afterListChange(); toast('Removed ' + n);
+      });
+      li.appendChild(s); li.appendChild(b); ul.appendChild(li);
+    });
+  }
+  function addTo(key){
+    var el = $('new-' + key), n = tidy(properCase(el.value));
+    if (!n) { el.focus(); return; }
+    if (settings[key].some(function(x){ return x.toLowerCase() === n.toLowerCase(); })) { toast(n + ' is already in the list'); return; }
+    settings[key].push(n);
+    settings[key].sort(function(a, b){ return a.localeCompare(b); });
+    saveSettings(); el.value = ''; el.focus();
+    renderList(key); afterListChange();
+  }
+  ['approvers','sales'].forEach(function(key){
+    $('add-' + key).addEventListener('click', function(){ addTo(key); });
+    $('new-' + key).addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); addTo(key); } });
+  });
+  $('setStaff').addEventListener('input', function(){
+    settings.staff = tidy($('setStaff').value); saveSettings(); renderStaff(); render();
+  });
+
+  /* Settings is its own page behind a password, re-locked on every visit */
+  var SETTINGS_PASSWORD = '1234';
+  function openSettings(){
+    $('mainView').hidden = true;
+    $('settingsView').hidden = false;
+    $('lockBox').hidden = false;
+    $('settingsBody').hidden = true;
+    $('pwError').hidden = true;
+    $('pwInput').value = '';
+    window.scrollTo(0, 0);
+    setTimeout(function(){ $('pwInput').focus(); }, 30);
+  }
+  function unlockSettings(){
+    $('lockBox').hidden = true;
+    $('settingsBody').hidden = false;
+    $('setStaff').value = settings.staff;
+    renderList('approvers'); renderList('sales');
+    if (!settings.staff) $('setStaff').focus();
+  }
+  function closeSettings(){
+    $('settingsView').hidden = true;
+    $('mainView').hidden = false;
+    renderStaff(); renderSalesSelect(); renderApproverSelects(); render();
+    window.scrollTo(0, 0);
+  }
+  $('lockForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    if ($('pwInput').value.trim() === SETTINGS_PASSWORD) { unlockSettings(); }
+    else { $('pwError').hidden = false; $('pwInput').value = ''; $('pwInput').focus(); }
+  });
+  $('pwInput').addEventListener('input', function(){ $('pwError').hidden = true; });
+  $('openSettings').addEventListener('click', openSettings);
+  document.querySelectorAll('[data-open-settings]').forEach(function(b){ b.addEventListener('click', openSettings); });
+  $('closeSettings').addEventListener('click', closeSettings);
+  $('backBtn').addEventListener('click', closeSettings);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && !$('settingsView').hidden) closeSettings(); });
+  $('crYear').textContent = new Date().getFullYear();
+
+  /* ---------- clear (two taps) ---------- */
+  var armTimer = null;
+  $('clearBtn').addEventListener('click', function(){
+    var b = $('clearBtn');
+    if (!b.classList.contains('armed')) {
+      b.classList.add('armed'); b.textContent = 'Tap again to clear';
+      armTimer = setTimeout(function(){ b.classList.remove('armed'); b.textContent = 'Clear form'; }, 3000);
+      return;
+    }
+    clearTimeout(armTimer);
+    b.classList.remove('armed'); b.textContent = 'Clear form';
+    draftIds.forEach(function(id){ $(id).value = ''; });
+    renderPayRows([]);
+    renderQuotes([]);
+    saveDraft(); render(); toast('Form cleared');
+  });
+
+  /* ---------- copy ---------- */
+  function fallbackCopy(text){
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    var ok = false; try { ok = document.execCommand('copy'); } catch(e){}
+    document.body.removeChild(ta);
+    toast(ok ? 'Message copied' : 'Copy failed. Select the preview text and copy it.');
+  }
+  $('copyBtn').addEventListener('click', function(){
+    var text = currentText;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function(){ toast('Message copied'); }, function(){ fallbackCopy(text); });
+    } else fallbackCopy(text);
+  });
+
+  /* ---------- keyboard (PC) ---------- */
+  function formFields(){
+    return Array.prototype.filter.call(document.querySelectorAll('#form input, #form select'), function(el){
+      return el.offsetParent !== null && !el.disabled;
+    });
+  }
+  $('form').addEventListener('keydown', function(e){
+    if (e.key !== 'Enter' || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+    var el = e.target;
+    if (!el.matches('input, select') || el.closest('.pay-row')) return;
+    e.preventDefault();
+    var list = formFields(), i = list.indexOf(el);
+    if (i >= 0 && i < list.length - 1) list[i + 1].focus();
+    else $(isDesktop ? 'copyBtn' : 'waBtn').focus();
+  });
+  document.addEventListener('keydown', function(e){
+    if (!$('settingsView').hidden) return;
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      if (isDesktop) $('copyBtn').click(); else $('waBtn').click();
+      return;
+    }
+    if (e.altKey && !e.ctrlKey && !e.metaKey) {
+      var k = (e.code || '').replace(/^(Digit|Numpad)/, '');
+      var map = { '1': 'against', '2': 'stock', '3': 'payment' };
+      if (map[k]) { e.preventDefault(); setType(map[k], true); return; }
+      if (e.code === 'KeyC') { e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); setTimeout(function(){ $('copyBtn').click(); }, 0); }
+    }
+  });
+
+  var tt = null;
+  function toast(msg){
+    var t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(tt); tt = setTimeout(function(){ t.classList.remove('show'); }, 2200);
+  }
+
+  /* ---------- init ---------- */
+  var selectIds = ['salesStaff','approvedBy','advApprovedBy','payApprovedBy'];
+  draftIds.forEach(function(id){ if (selectIds.indexOf(id) < 0 && draft[id]) $(id).value = draft[id]; });
+  renderPayRows(Array.isArray(draft.pay) ? draft.pay : (draft.paySupplier ? [draft.paySupplier] : []));
+  renderStaff();
+  renderQuotes(Array.isArray(draft.quotes) && draft.quotes.length ? draft.quotes
+    : [{ sales: draft.salesStaff || '', customer: draft.customer || '', quot: draft.quotAmt || '', adv: draft.advAmt || '' }]);
+  renderApproverSelects({ approvedBy: draft.approvedBy || '', advApprovedBy: draft.advApprovedBy || '', payApprovedBy: draft.payApprovedBy || '' });
+  setType(type);
+})();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+}
+</script>
+</body>
+</html>
